@@ -51,6 +51,36 @@
 		};
 	};
 
+	backlight_lvds: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm4 0 5000000>;
+		brightness-levels = < 0  1  2  3  4  5  6  7  8  9
+				     10 11 12 13 14 15 16 17 18 19
+				     20 21 22 23 24 25 26 27 28 29
+				     30 31 32 33 34 35 36 37 38 39
+				     40 41 42 43 44 45 46 47 48 49
+				     50 51 52 53 54 55 56 57 58 59
+				     60 61 62 63 64 65 66 67 68 69
+				     70 71 72 73 74 75 76 77 78 79
+				     80 81 82 83 84 85 86 87 88 89
+				     90 91 92 93 94 95 96 97 98 99
+				    100>;
+		default-brightness-level = <50>;
+
+		enable-gpios = <&gpio6 15 0>;
+        };
+
+	panel {
+		compatible = "hannstar,hsd100pxn1";
+		backlight = <&backlight_lvds>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&lvds0_out>;
+			};
+		};
+	};
+
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
@@ -68,6 +98,12 @@
 			gpios = <&gpio3 28 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
+
+		led2: lcd_en {
+			label = "lcd_en";
+			gpios = <&gpio1 29 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
 	};
 
 	sound {
@@ -82,6 +118,11 @@
 			mux-int-port = <1>;
 			mux-ext-port = <3>;
 	};
+
+	iio_hwmon {
+		compatible = "iio-hwmon";
+		io-channels = <&htu 0>, <&htu 1>;
+	};
 };
 
 &audmux {
@@ -95,14 +136,30 @@
 	pinctrl-0 = <&pinctrl_enet>;
 	phy-mode = "rgmii";
 	phy-reset-gpios = <&gpio3 31 0>;
-	interrupts-extended = <&gpio1 6 IRQ_TYPE_LEVEL_HIGH>,
-			      <&intc 0 119 IRQ_TYPE_LEVEL_HIGH>;
 	status = "okay";
 };
 
 &hdmi {
 	ddc-i2c-bus = <&i2c2>;
+	status = "disable";
+};
+
+&ldb {
 	status = "okay";
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <18>;
+		status = "okay";
+
+		port@4 {
+			reg = <4>;
+
+			lvds0_out: endpoint {
+				remote-endpoint = <&panel_in>;
+			};
+		};
+	};
 };
 
 &i2c1 {
@@ -221,12 +278,32 @@
 	status = "okay";
 };
 
+&i2c3 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3>;
+	status = "okay";
+
+	ct363_ts@04 {
+		compatible = "vtl,ct363_ts";
+		reg = <0x01>;
+		interrupt-parent = <&gpio6>;
+		interrupts = <14 8>;
+	};
+};
+
 &i2c4 {
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c4>;
 	clocks = <&clks 116>;
 	status = "okay";
+
+	htu: htu21df@40 {
+		compatible = "htu21";
+		reg =<0x40>;
+		#io-channel-cells = <1>;
+	};
 };
 
 &pwm1 {
@@ -330,8 +407,16 @@
 
 &iomuxc {
 	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
 
 	imx6-riotboard {
+		pinctrl_hog: hoggrp {
+			fsl,pins = <
+				MX6QDL_PAD_NANDF_CS1__GPIO6_IO14	0x1b0b1		/* Touch Int */
+				MX6QDL_PAD_NANDF_CS2__GPIO6_IO15	0x1b0b1		/* LED PWR EN */
+			>;
+		};
+
 		pinctrl_audmux: audmuxgrp {
 			fsl,pins = <
 				MX6QDL_PAD_CSI0_DAT7__AUD3_RXD		0x130b0
@@ -391,7 +476,6 @@
 				MX6QDL_PAD_GPIO_16__ENET_REF_CLK	0x4001b0a8	/* GPIO16 -> AR8035 25MHz */
 			        MX6QDL_PAD_EIM_D31__GPIO3_IO31		0x130b0		/* RGMII_nRST */
 				MX6QDL_PAD_ENET_TX_EN__GPIO1_IO28	0x180b0		/* AR8035 interrupt */
-				MX6QDL_PAD_GPIO_6__ENET_IRQ		0x000b1
 			>;
 		};
 
@@ -427,6 +511,7 @@
 			fsl,pins = <
 				MX6QDL_PAD_EIM_A25__GPIO5_IO02		0x1b0b1	/* user led0 */
 				MX6QDL_PAD_EIM_D28__GPIO3_IO28		0x1b0b1	/* user led1 */
+				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29	0x1b0b1	/* lcd enable */
 			>;
 		};
 
