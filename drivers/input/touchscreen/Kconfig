@@ -153,6 +153,16 @@ config TOUCHSCREEN_CHIPONE_ICN8318
 	  To compile this driver as a module, choose M here: the
 	  module will be called chipone_icn8318.
 
+config TOUCHSCREEN_CT363
+	tristate "VTL CT363 multi-touch panel support"
+	depends on I2C && OF
+	help
+	  Say Y here to enable support for I2C connected VTL
+	  CT363 multi-touch panels.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ct363_ts.
+
 config TOUCHSCREEN_CY8CTMG110
 	tristate "cy8ctmg110 touchscreen"
 	depends on I2C
